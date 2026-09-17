@@ -114,8 +114,8 @@ pnpm verify:models       # 13 项：真实 schema 提取 + 编解码往返 + 模
 pnpm verify:agent        # 62 项：原生 agent 回话，47 工具目录 + MCP + 规则/技能/子代理模型
 pnpm verify:knowledge    # 23 项："remember this" 的本地增删改查与跨重启持久化
 pnpm verify:websearch    # 38 项：六个搜索后端的真实请求、回合内执行、不遮挡原生工具
-pnpm verify:panel        # 42 项：桩化 vscode 激活真实扩展包，面板表单与存盘往返
-pnpm verify              # 以上全部（377 项）
+pnpm verify:panel        # 46 项：桩化 vscode 激活真实扩展包，面板表单与存盘往返
+pnpm verify              # 以上全部（381 项）
 pnpm clean               # 清掉构建产物与验证残留（沙箱影子约 100 MiB）
 ```
 

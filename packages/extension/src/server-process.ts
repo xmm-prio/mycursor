@@ -29,11 +29,20 @@ export class ServerSupervisor {
   private child: ChildProcess | null = null;
   private state: ServerState = 'stopped';
   private startInFlight: Promise<ServerState> | null = null;
+  /** Set while stopping, to tell a deliberate exit from a crash. */
+  private stopping = false;
+  /** Last output from a server that failed, so the reason can be shown. */
+  private lastFailure = '';
 
   constructor(private readonly deps: SupervisorDeps) {}
 
   currentState(): ServerState {
     return this.state;
+  }
+
+  /** Why the last start failed, in one line, or empty if it did not. */
+  failureReason(): string {
+    return this.lastFailure;
   }
 
   /** Probes for a healthy server that identifies itself as ours. */
@@ -85,6 +94,8 @@ export class ServerSupervisor {
     }
 
     this.state = 'starting';
+    this.stopping = false;
+    this.lastFailure = '';
     this.deps.log(`starting BYOK server: ${process.execPath} ${launcher}`);
 
     // Detached and with stdio piped: the server outlives a window reload, and
@@ -96,15 +107,34 @@ export class ServerSupervisor {
     });
     this.child = child;
 
-    child.stdout?.on('data', (chunk: Buffer) => this.deps.log(`[server] ${chunk.toString().trimEnd()}`));
-    child.stderr?.on('data', (chunk: Buffer) => this.deps.log(`[server] ${chunk.toString().trimEnd()}`));
+    // Kept so a failure can be reported with its cause rather than as a bare
+    // "did not start", which leaves the user nothing to act on.
+    let recent = '';
+    const record = (chunk: Buffer): void => {
+      const text = chunk.toString();
+      recent = `${recent}${text}`.slice(-2_000);
+      this.deps.log(`[server] ${text.trimEnd()}`);
+    };
+    child.stdout?.on('data', record);
+    child.stderr?.on('data', record);
+
     child.on('exit', (code, signal) => {
       this.child = null;
-      this.state = 'stopped';
+      // A server that exits on its own has crashed; only a stop we asked for
+      // is an ordinary stop. Treating a crash as 'stopped' is what previously
+      // suppressed the warning and left the user watching a spinner.
+      if (this.stopping) {
+        this.state = 'stopped';
+      } else {
+        this.state = 'failed';
+        this.lastFailure = firstMeaningfulLine(recent) || `exited with code ${code ?? signal}`;
+      }
       this.deps.log(`BYOK server exited (code=${code ?? 'null'} signal=${signal ?? 'none'})`);
     });
+
     child.on('error', (error) => {
       this.state = 'failed';
+      this.lastFailure = error.message;
       this.deps.log(`BYOK server could not be started: ${error.message}`);
     });
 
@@ -125,6 +155,7 @@ export class ServerSupervisor {
     }
 
     this.state = 'failed';
+    this.lastFailure = 'the server did not answer its health endpoint within 15s';
     this.deps.log('BYOK server did not become ready within 15s');
     return this.state;
   }
@@ -136,6 +167,7 @@ export class ServerSupervisor {
       return;
     }
     this.deps.log('stopping BYOK server');
+    this.stopping = true;
     this.child.kill('SIGTERM');
     this.child = null;
     this.state = 'stopped';
@@ -154,4 +186,19 @@ export class ServerSupervisor {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Picks the line worth showing from a crashed server's output.
+ *
+ * Node prints the offending source line before the error, so the first line
+ * is usually the least informative one.
+ */
+function firstMeaningfulLine(output: string): string {
+  const lines = output
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const error = lines.find((line) => /error|cannot|failed|EADDRINUSE|ENOENT/i.test(line));
+  return (error ?? lines[0] ?? '').slice(0, 200);
 }

@@ -26,7 +26,11 @@ const targets = [
   {
     name: 'server launcher',
     entry: join(here, '..', 'server', 'src', 'launch.ts'),
-    outfile: join(here, 'dist', 'server', 'launch.js'),
+    // `.cjs`, not `.js`: this package is `"type": "module"`, so Node would
+    // read a `.js` file as ESM and refuse the CommonJS output emitted below.
+    // The extension itself starts fine either way, so the mismatch only
+    // surfaces when the server is spawned — as a spinner that never settles.
+    outfile: join(here, 'dist', 'server', 'launch.cjs'),
     external: [],
   },
 ];

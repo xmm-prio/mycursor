@@ -13,7 +13,7 @@
     "include": [
       "package.json",
       "dist/extension.cjs",
-      "dist/server/launch.js",
+      "dist/server/launch.cjs",
       "media/**",
       "resources/**"
     ]

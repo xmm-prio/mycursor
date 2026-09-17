@@ -9,10 +9,18 @@
  *
  * What is proven here: activation registers the sidebar view, the rendered
  * document is a valid sandboxed webview, the panel reads providers from disk,
- * and a save from the panel lands in `providers.json` in the shape the server
- * reads back.
+ * a save from the panel lands in `providers.json` in the shape the server
+ * reads back, and the packaged server launcher actually starts.
+ *
+ * That last one is here because its absence shipped a bug: the launcher was
+ * emitted as CommonJS named `.js` inside a `"type": "module"` package, so
+ * Node read it as ESM and refused to run it. Nothing caught that, because
+ * nothing had ever executed the packaged launcher — the extension bundle
+ * loaded fine on its own, and the failure only appeared as a spinner that
+ * never settled once a user tried to start the server.
  */
 
+import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -303,6 +311,8 @@ async function main() {
   check('model ids resolve to their provider',
     Boolean(registry.resolve('seeded-model')) && Boolean(registry.resolve('added-model')));
 
+  await verifyPackagedLauncher();
+
   bundle.deactivate();
 
   const failed = checks.filter((entry) => !entry.passed);
@@ -312,6 +322,73 @@ async function main() {
     for (const entry of failed) console.log(`  - ${entry.name}: ${entry.detail ?? ''}`);
     process.exitCode = 1;
   }
+}
+
+/**
+ * Starts the packaged launcher the way the supervisor does, and waits for it
+ * to answer its own health endpoint.
+ *
+ * Spawning it as a child of `process.execPath` is the point: a module-format
+ * mismatch, a missing dependency or a bad path only shows up when Node
+ * actually loads the file, and none of the checks above do that.
+ */
+async function verifyPackagedLauncher() {
+  console.log('\n── The packaged server launcher');
+
+  const extensionRoot = join(repoRoot, 'packages', 'extension');
+  const manifest = JSON.parse(readFileSync(join(extensionRoot, 'package.json'), 'utf-8'));
+
+  // The launcher under test is the one the VSIX declares, not a path repeated
+  // here. Hard-coding it would let the manifest, the extension and the build
+  // drift apart while this still passed.
+  const shipped = (manifest.vsix?.include ?? []).find((entry) => entry.includes('server/launch'));
+  check('the VSIX declares a server launcher', Boolean(shipped), shipped ?? 'none');
+  const launcher = join(extensionRoot, ...(shipped ?? 'dist/server/launch.cjs').split('/'));
+
+  const bundleSource = readFileSync(join(extensionRoot, 'dist', 'extension.cjs'), 'utf-8');
+  const fileName = (shipped ?? '').split('/').pop() ?? '';
+  check('the extension resolves the launcher the VSIX ships',
+    fileName.length > 0 && bundleSource.includes(fileName), fileName);
+
+  const home = join(workDir, 'launcher-home');
+  mkdirSync(home, { recursive: true });
+  writeFileSync(
+    join(home, 'config.json'),
+    JSON.stringify({ server: { host: '127.0.0.1', port: 39877, tlsPort: 39878 } }),
+  );
+
+  const child = spawn(process.execPath, [launcher], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, MYCURSOR_HOME: home },
+  });
+
+  let output = '';
+  child.stdout.on('data', (chunk) => (output += chunk));
+  child.stderr.on('data', (chunk) => (output += chunk));
+
+  let exited = null;
+  child.on('exit', (code) => (exited = code));
+
+  let healthy = false;
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline && exited === null && !healthy) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    try {
+      const response = await fetch('http://127.0.0.1:39877/__mycursor/health');
+      const body = await response.json();
+      healthy = body.ok === true && body.service === 'mycursor';
+    } catch {
+      // Not listening yet.
+    }
+  }
+
+  check('the launcher runs instead of exiting on load', exited === null,
+    exited === null ? 'still running' : `exited ${exited}: ${output.split('\n')[0]}`);
+  check('the server it started answers its health endpoint', healthy,
+    healthy ? 'ok' : output.split('\n').slice(0, 3).join(' | ').slice(0, 160));
+
+  child.kill();
+  await new Promise((resolve) => setTimeout(resolve, 300));
 }
 
 /** Lets the panel's async message handlers finish. */

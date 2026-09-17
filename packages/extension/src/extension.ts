@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (override) return override;
       // Resolved from the extension directory so a packaged VSIX works without
       // any assumption about where the repository lives.
-      return join(context.extensionPath, 'dist', 'server', 'launch.js');
+      return join(context.extensionPath, 'dist', 'server', 'launch.cjs');
     },
     log,
   });
@@ -92,8 +92,12 @@ export function activate(context: vscode.ExtensionContext): void {
   if (settings().get<boolean>('server.autoStart', true)) {
     void supervisor.ensureRunning().then((state) => {
       if (state === 'failed') {
+        // Naming the cause here is the difference between a warning the user
+        // can act on and one that only says something is wrong.
+        const reason = supervisor?.failureReason();
         void vscode.window.showWarningMessage(
-          'MyCursor: the BYOK server did not start. Model requests will use Cursor\'s own API until it does.',
+          `MyCursor: the BYOK server did not start${reason ? ` — ${reason}` : ''}. ` +
+            "Model requests will use Cursor's own API until it does.",
           'Show Log',
         ).then((choice) => {
           if (choice === 'Show Log') channel?.show(true);
