@@ -17,12 +17,14 @@ import { connect as netConnect, type Socket } from 'node:net';
 import { connect as tlsConnect } from 'node:tls';
 
 import { ProviderError } from '../types.js';
+import { resolveProxy } from './proxy.js';
 
 export interface HttpCallOptions {
   url: string;
   method?: 'GET' | 'POST';
   headers: Record<string, string>;
   body?: unknown;
+  /** Overrides the proxy; without it the environment's is used. */
   proxyUrl?: string | undefined;
   signal?: AbortSignal | undefined;
   /** Attempts for a retryable failure before giving up. */
@@ -126,12 +128,15 @@ function once(options: HttpCallOptions): Promise<HttpResponse> {
       request.end();
     };
 
-    if (!options.proxyUrl) {
+    // Falls back to the environment, so a machine already configured for a
+    // corporate proxy works without the proxy field being filled in too.
+    const proxyUrl = resolveProxy(options.url, options.proxyUrl);
+    if (!proxyUrl) {
       issue();
       return;
     }
 
-    openTunnel(options.proxyUrl, target, secure).then(issue, reject);
+    openTunnel(proxyUrl, target, secure).then(issue, reject);
   });
 }
 

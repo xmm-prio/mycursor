@@ -6,3 +6,4 @@ export { AnthropicProvider } from './adapters/anthropic.js';
 export { GeminiProvider } from './adapters/gemini.js';
 export { parseSse } from './transport/sse.js';
 export { call as httpCall, readJson, readAll } from './transport/http.js';
+export { resolveProxy } from './transport/proxy.js';
