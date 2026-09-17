@@ -29,13 +29,19 @@ Cursor 的模型请求发往 `api2.cursor.sh` 等官方端点。本工具在 Cur
 
 ## 快速开始
 
-一条命令装完：
+克隆后在仓库里执行：
 
 ```bash
-npx mycursor install
+git clone https://github.com/xmm-prio/mycursor.git
+cd mycursor
+npx . install
 ```
 
-它会依次完成：给本机所有 Cursor 安装打补丁（含 `~/.cursor-server` 远端）→ 从你自己的 Cursor 提取 protobuf schema → 把配置面板打包成 VSIX 并用 Cursor 官方 CLI 装上 → 写好默认配置。
+> **不要执行 `npx mycursor`。** 本项目尚未发布到 npm，而 npm 上的 `mycursor` 是**另一个毫不相干的包**（"Perfect for using custom cursors"）——那条命令会下载并运行别人的代码。发布时也需要换一个作用域名字。
+
+`npx .` 会自己补齐依赖和构建产物：检测到 `packages/cli/dist` 不存在时先 `pnpm install` 再 `pnpm build`，然后才执行命令，所以全新克隆也是一条命令。已经构建过则直接跳过。
+
+install 依次完成：给本机所有 Cursor 安装打补丁（含 `~/.cursor-server` 远端）→ 从你自己的 Cursor 提取 protobuf schema → 把配置面板打包成 VSIX 并用 Cursor 官方 CLI 装上 → 写好默认配置。
 
 然后：
 
@@ -48,12 +54,12 @@ npx mycursor install
 随时查看状态与排查：
 
 ```bash
-npx mycursor status      # 配置、provider、schema、服务、补丁状态
-npx mycursor doctor      # 逐目标明细、路由表、校验和审计
-npx mycursor schema      # 重新提取协议 schema（Cursor 升级后需要）
-npx mycursor extension   # 单独重装配置面板
-npx mycursor serve       # 在终端里手动跑服务
-npx mycursor uninstall   # 逐字节还原并移除面板
+npx . status      # 配置、provider、schema、服务、补丁状态
+npx . doctor      # 逐目标明细、路由表、校验和审计
+npx . schema      # 重新提取协议 schema（Cursor 升级后需要）
+npx . extension   # 单独重装配置面板
+npx . serve       # 在终端里手动跑服务
+npx . uninstall   # 逐字节还原并移除面板
 ```
 
 安装是幂等的：重复执行只会补齐缺失部分；任何一步失败都会**整体回滚**，不会留下"一半进程被改道"的状态。Cursor 升级后重新执行 `install` 即可（重打补丁 + 重新提取 schema + 重装面板）。

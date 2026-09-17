@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * `npx mycursor` entry point.
+ * `npx .` entry point.
  *
  * The point of this launcher is that one command has to be enough. Someone
- * running `npx` has not built anything, so if the workspace is present but
- * unbuilt it is built here rather than met with an error telling them to run
- * two more commands.
+ * who has just cloned the repository has not built anything, so if the
+ * workspace is present but unbuilt it is built here rather than met with an
+ * error telling them to run two more commands.
  *
  * Building is skipped entirely when the CLI is already compiled, which is the
  * case for a published package.
