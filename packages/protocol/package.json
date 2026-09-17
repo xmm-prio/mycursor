@@ -1,0 +1,20 @@
+{
+  "name": "@mycursor/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./wire": { "types": "./dist/wire/index.d.ts", "default": "./dist/wire/index.js" },
+    "./connect": { "types": "./dist/connect/index.d.ts", "default": "./dist/connect/index.js" },
+    "./schema": { "types": "./dist/schema/index.d.ts", "default": "./dist/schema/index.js" }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@mycursor/core": "workspace:*"
+  }
+}

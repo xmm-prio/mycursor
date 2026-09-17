@@ -1,0 +1,82 @@
+{
+  "name": "@mycursor/extension",
+  "displayName": "MyCursor BYOK",
+  "description": "Bring your own key to Cursor: provider panel and BYOK server lifecycle",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "mycursor",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "vsix": {
+    "name": "mycursor",
+    "include": [
+      "package.json",
+      "dist/extension.cjs",
+      "dist/server/launch.js",
+      "media/**",
+      "resources/**"
+    ]
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mycursor",
+          "title": "MyCursor",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "mycursor": [
+        {
+          "type": "webview",
+          "id": "mycursor.panel",
+          "name": "Providers",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "mycursor.toggleByok", "title": "MyCursor: Toggle BYOK Mode" },
+      { "command": "mycursor.restartServer", "title": "MyCursor: Restart BYOK Server" },
+      { "command": "mycursor.stopServer", "title": "MyCursor: Stop BYOK Server" },
+      { "command": "mycursor.showStatus", "title": "MyCursor: Show Status" },
+      { "command": "mycursor.openConfig", "title": "MyCursor: Open Configuration" },
+      { "command": "mycursor.openProviders", "title": "MyCursor: Open Providers" }
+    ],
+    "configuration": {
+      "title": "MyCursor",
+      "properties": {
+        "mycursor.server.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the BYOK server when a window opens, if it is not already running."
+        },
+        "mycursor.server.launcher": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the server launcher. Leave empty to use the bundled one."
+        },
+        "mycursor.statusBar.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show BYOK state in the status bar."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -b && node build.mjs"
+  },
+  "dependencies": {
+    "@mycursor/core": "workspace:*",
+    "@mycursor/providers": "workspace:*",
+    "@mycursor/server": "workspace:*"
+  }
+}

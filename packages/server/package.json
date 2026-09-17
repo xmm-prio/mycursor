@@ -1,0 +1,22 @@
+{
+  "name": "@mycursor/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mycursor-serve": "./dist/launch.js"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@mycursor/core": "workspace:*",
+    "@mycursor/protocol": "workspace:*",
+    "@mycursor/providers": "workspace:*"
+  }
+}

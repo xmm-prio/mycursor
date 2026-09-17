@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="__CSP__" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="__STYLE_URI__" />
+    <title>MyCursor</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">MyCursor</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost" id="reload" title="Reload from disk">Reload</button>
+        <button class="ghost" id="open-file" title="Open providers.json">JSON</button>
+      </div>
+    </header>
+
+    <section class="status" id="status">
+      <button class="chip" id="byok-chip" type="button" title="Toggle BYOK mode">
+        <span class="dot" id="byok-dot"></span><span id="byok-label">BYOK</span>
+      </button>
+      <button class="chip" id="server-chip" type="button" title="Restart the BYOK server">
+        <span class="dot" id="server-dot"></span><span id="server-label">Server</span>
+      </button>
+      <span class="chip static" id="schema-chip" title="Cursor protocol schema">
+        <span class="dot" id="schema-dot"></span><span id="schema-label">Schema</span>
+      </span>
+    </section>
+
+    <div class="notice" id="notice" hidden></div>
+    <div class="busy" id="busy" hidden><span class="spinner"></span><span id="busy-label"></span></div>
+
+    <article class="card websearch" id="websearch">
+      <header class="card-head">
+        <button class="disclosure" id="ws-collapse" aria-label="Collapse"></button>
+        <span class="title-static">Web Search</span>
+        <span class="subtle" id="ws-summary"></span>
+        <label class="switch small" title="Offer a web search tool to the model">
+          <input type="checkbox" id="ws-enabled" />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </header>
+
+      <div class="card-body" data-role="body">
+        <p class="hint-block">
+          Cursor's own web search runs on its backend, so a BYOK turn loses it.
+          Turning this on gives the model a replacement that this server runs.
+        </p>
+        <div class="grid">
+          <label class="field">
+            <span class="label">Backend</span>
+            <div class="select-wrap">
+              <select id="ws-backend"></select>
+            </div>
+          </label>
+          <label class="field" id="ws-key-field">
+            <span class="label">API Key</span>
+            <div class="secret">
+              <input id="ws-api-key" type="password" spellcheck="false" placeholder="…" />
+              <button class="icon" id="ws-reveal" title="Show or hide">◎</button>
+            </div>
+          </label>
+          <label class="field">
+            <span class="label">Max Results</span>
+            <input id="ws-max-results" type="number" min="1" max="20" step="1" />
+          </label>
+          <label class="field">
+            <span class="label">Proxy URL <em>optional</em></span>
+            <input id="ws-proxy" spellcheck="false" placeholder="http://127.0.0.1:7890" />
+          </label>
+        </div>
+        <label class="cap standalone">
+          <input type="checkbox" id="ws-allow-fetch" /><span>Also offer web_fetch (read a page)</span>
+        </label>
+      </div>
+    </article>
+
+    <main id="providers" class="providers"></main>
+
+    <div class="empty" id="empty" hidden>
+      <p class="empty-title">No providers yet</p>
+      <p class="empty-hint">Add one to bring your own key into Cursor's model picker.</p>
+    </div>
+
+    <footer class="footer">
+      <button class="secondary" id="add-provider">+ Add Provider</button>
+      <div class="footer-right">
+        <button class="ghost" id="reset">Reset</button>
+        <button class="primary" id="save">Save</button>
+      </div>
+    </footer>
+
+    <template id="provider-template">
+      <article class="card provider" data-role="provider">
+        <header class="card-head">
+          <button class="disclosure" data-role="collapse" aria-label="Collapse"></button>
+          <input class="title-input" data-field="name" placeholder="Name" aria-label="Provider name" />
+          <label class="switch small" title="Enable this provider">
+            <input type="checkbox" data-field="enabled" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+          <button class="icon danger" data-role="delete-provider" title="Delete provider">✕</button>
+        </header>
+
+        <div class="card-body" data-role="body">
+          <div class="grid">
+            <label class="field">
+              <span class="label">Type</span>
+              <div class="select-wrap">
+                <select data-field="type"></select>
+              </div>
+            </label>
+            <label class="field">
+              <span class="label">Base URL <em>leave empty for SDK default</em></span>
+              <input data-field="baseUrl" spellcheck="false" placeholder="" />
+            </label>
+            <label class="field">
+              <span class="label">Auth Value</span>
+              <div class="secret">
+                <input data-field="authValue" type="password" spellcheck="false" placeholder="sk-…" />
+                <button class="icon" data-role="reveal" title="Show or hide">◎</button>
+              </div>
+            </label>
+            <label class="field">
+              <span class="label">Proxy URL <em>optional</em></span>
+              <input data-field="proxyUrl" spellcheck="false" placeholder="http://127.0.0.1:7890" />
+            </label>
+            <label class="field wide">
+              <span class="label">Custom Headers <em>optional, JSON — e.g. anthropic-beta</em></span>
+              <textarea data-field="headers" rows="2" spellcheck="false" placeholder='{ "anthropic-beta": "context-1m-2025-08-07" }'></textarea>
+            </label>
+          </div>
+
+          <div class="models-head">
+            <h3 class="models-title">Models <span class="count" data-role="model-count">0</span></h3>
+            <div class="models-actions">
+              <button class="ghost" data-role="fetch">↓ Fetch</button>
+              <button class="secondary" data-role="add-model">+ Add Model</button>
+            </div>
+          </div>
+          <div class="models" data-role="models"></div>
+        </div>
+      </article>
+    </template>
+
+    <template id="model-template">
+      <div class="model" data-role="model">
+        <header class="model-head">
+          <button class="disclosure" data-role="collapse-model" aria-label="Collapse"></button>
+          <span class="model-name" data-role="model-title">model</span>
+          <label class="switch small off-switch" title="Exclude this model">
+            <input type="checkbox" data-field="enabled" />
+            <span class="track"><span class="thumb"></span></span>
+            <span class="off-label">Off</span>
+          </label>
+          <button class="icon danger" data-role="remove-model" title="Remove model">✕</button>
+        </header>
+
+        <div class="model-body" data-role="model-body">
+          <div class="grid">
+            <label class="field">
+              <span class="label">API Model <em>fuzzy catalog search</em></span>
+              <div class="combo">
+                <input data-field="apiModel" spellcheck="false" autocomplete="off" placeholder="gpt-4.1" />
+                <div class="combo-list" data-role="suggestions" hidden></div>
+              </div>
+            </label>
+            <label class="field">
+              <span class="label">Display Name</span>
+              <input data-field="displayName" placeholder="GPT-4.1" />
+            </label>
+          </div>
+
+          <div class="caps" data-role="caps">
+            <label class="cap"><input type="checkbox" data-cap="agent" /><span>Agent</span></label>
+            <label class="cap"><input type="checkbox" data-cap="images" /><span>Images</span></label>
+            <label class="cap"><input type="checkbox" data-cap="cmdK" /><span>Cmd+K</span></label>
+            <label class="cap"><input type="checkbox" data-cap="fast" /><span>Fast</span></label>
+            <label class="cap"><input type="checkbox" data-cap="thinking" /><span>Thinking</span></label>
+            <div class="select-wrap tiny">
+              <select data-field="thinkingLevel" aria-label="Thinking level"></select>
+            </div>
+          </div>
+
+          <div class="grid">
+            <label class="field">
+              <span class="label">Context Token Limit <b class="req">*</b></span>
+              <input data-field="contextTokenLimit" type="number" min="1" step="1024" />
+            </label>
+            <label class="field">
+              <span class="label">Max Output Tokens <b class="req">*</b></span>
+              <input data-field="maxOutputTokens" type="number" min="1" step="256" />
+            </label>
+            <label class="field wide">
+              <span class="label">Tooltip Markdown <em>hover in model picker</em></span>
+              <textarea data-field="tooltipMarkdown" rows="2" placeholder="**Fast** · 200k context"></textarea>
+            </label>
+          </div>
+
+          <details class="quickswitch">
+            <summary>QuickSwitch Options</summary>
+            <div class="quickswitch-body">
+              <div class="field">
+                <span class="label">Reasoning Levels</span>
+                <div class="pills" data-role="reasoning-levels"></div>
+              </div>
+              <label class="field">
+                <span class="label">Context Options <em>comma separated</em></span>
+                <input data-field="contextOptions" placeholder="default, extended" />
+              </label>
+              <label class="cap standalone">
+                <input type="checkbox" data-field="fastToggle" /><span>Fast Toggle</span>
+              </label>
+            </div>
+          </details>
+        </div>
+      </div>
+    </template>
+
+    <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
+  </body>
+</html>

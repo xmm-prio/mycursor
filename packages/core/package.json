@@ -1,0 +1,20 @@
+{
+  "name": "@mycursor/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./config": { "types": "./dist/config/index.d.ts", "default": "./dist/config/index.js" },
+    "./routing": { "types": "./dist/routing/index.d.ts", "default": "./dist/routing/index.js" },
+    "./tools": { "types": "./dist/tools/index.d.ts", "default": "./dist/tools/index.js" },
+    "./logging": { "types": "./dist/logging/index.d.ts", "default": "./dist/logging/index.js" },
+    "./tls": { "types": "./dist/tls/index.d.ts", "default": "./dist/tls/index.js" },
+    "./net": { "types": "./dist/net/index.d.ts", "default": "./dist/net/index.js" }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

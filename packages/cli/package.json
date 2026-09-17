@@ -1,0 +1,20 @@
+{
+  "name": "@mycursor/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mycursor": "./dist/main.js"
+  },
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@mycursor/core": "workspace:*",
+    "@mycursor/interceptor": "workspace:*",
+    "@mycursor/patcher": "workspace:*",
+    "@mycursor/providers": "workspace:*",
+    "@mycursor/server": "workspace:*"
+  }
+}

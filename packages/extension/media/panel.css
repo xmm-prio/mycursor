@@ -1,0 +1,756 @@
+/*
+ * Panel styling.
+ *
+ * Everything is expressed through VSCode's theme variables rather than fixed
+ * colours, so the panel follows whatever theme the user has — a hardcoded
+ * palette looks wrong in half of them and unreadable in a few.
+ *
+ * The layout targets a narrow sidebar first: a single column that stays
+ * legible at roughly 260px, widening to two columns only when there is room.
+ */
+
+:root {
+  --gap: 10px;
+  --radius: 6px;
+  --radius-lg: 9px;
+  --border: var(--vscode-widget-border, rgba(128, 128, 128, 0.28));
+  --muted: var(--vscode-descriptionForeground, #8b8b8b);
+  --accent: var(--vscode-focusBorder, #0078d4);
+  --surface: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.06));
+  --ok: var(--vscode-charts-green, #3fb950);
+  --warn: var(--vscode-charts-yellow, #d29922);
+  --bad: var(--vscode-charts-red, #f85149);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 0 72px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground);
+  background: var(--vscode-sideBar-background, transparent);
+}
+
+/* ----------------------------------------------------------- top bar --- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 10px 12px 8px;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.brand-mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--accent), var(--ok));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ------------------------------------------------------------ status --- */
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--vscode-foreground);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.chip:hover:not(.static) {
+  border-color: var(--accent);
+}
+
+.chip.static {
+  cursor: default;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.dot.on {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
+}
+
+.dot.off {
+  background: var(--bad);
+}
+
+.dot.warn {
+  background: var(--warn);
+}
+
+/* ------------------------------------------------- notices and busy --- */
+
+.notice {
+  margin: 8px 12px 0;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.notice[data-level='error'] {
+  border-left-color: var(--bad);
+}
+
+.notice[data-level='warn'] {
+  border-left-color: var(--warn);
+}
+
+.busy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------- cards --- */
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: 12px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--vscode-editor-background);
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid transparent;
+}
+
+.card.open .card-head {
+  border-bottom-color: var(--border);
+}
+
+.card-body,
+.model-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card:not(.open) .card-body,
+.model:not(.open) .model-body {
+  display: none;
+}
+
+.disclosure {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+
+.disclosure::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.card.open > .card-head > .disclosure::before,
+.model.open > .model-head > .disclosure::before {
+  transform: rotate(45deg);
+}
+
+.title-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 3px 6px;
+  border-radius: var(--radius);
+}
+
+.title-input:hover {
+  border-color: var(--border);
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--vscode-input-background);
+}
+
+/* -------------------------------------------------------- web search --- */
+
+.websearch {
+  margin: 12px 12px 0;
+}
+
+.title-static {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+.subtle {
+  font-size: 11px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.hint-block {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------ fields --- */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@container (min-width: 460px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.card-body,
+.model-body {
+  container-type: inline-size;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field.wide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+
+.label em {
+  font-style: normal;
+  opacity: 0.72;
+}
+
+.req {
+  color: var(--warn);
+}
+
+input[type='text'],
+input[type='password'],
+input[type='number'],
+input:not([type]),
+textarea,
+select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--vscode-input-border, var(--border));
+  border-radius: var(--radius);
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  font-family: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
+
+input.invalid,
+textarea.invalid {
+  border-color: var(--bad);
+}
+
+textarea {
+  font-family: var(--vscode-editor-font-family, monospace);
+  line-height: 1.45;
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select-wrap.tiny select {
+  padding: 3px 22px 3px 7px;
+  font-size: 11px;
+  width: auto;
+  min-width: 84px;
+}
+
+select {
+  appearance: none;
+  padding-right: 24px;
+  cursor: pointer;
+}
+
+.secret {
+  display: flex;
+  gap: 6px;
+}
+
+.combo {
+  position: relative;
+}
+
+.combo-list {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 3px);
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--vscode-dropdown-background, var(--vscode-editor-background));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+}
+
+.combo-item {
+  padding: 5px 9px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.combo-item:hover,
+.combo-item.active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.combo-item .hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.combo-empty {
+  padding: 7px 9px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------ capabilities --- */
+
+.caps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--vscode-editor-background);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.cap input {
+  display: none;
+}
+
+.cap:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.cap.standalone {
+  align-self: flex-start;
+}
+
+/* ----------------------------------------------------------- switches --- */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: none;
+}
+
+.switch input {
+  display: none;
+}
+
+.track {
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--vscode-checkbox-background, rgba(128, 128, 128, 0.4));
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.14s ease;
+}
+
+.thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vscode-foreground);
+  opacity: 0.75;
+  transition: transform 0.14s ease;
+}
+
+.switch input:checked + .track {
+  background: color-mix(in srgb, var(--ok) 65%, transparent);
+}
+
+.switch input:checked + .track .thumb {
+  transform: translateX(12px);
+  opacity: 1;
+}
+
+.off-switch .off-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.off-switch input:checked ~ .off-label {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------ models --- */
+
+.models-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+}
+
+.models-title {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  margin-left: 3px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.models-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.models {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--vscode-editor-background);
+  overflow: hidden;
+}
+
+.model.disabled {
+  opacity: 0.55;
+}
+
+.model-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--surface);
+}
+
+.model-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.quickswitch {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.quickswitch summary {
+  padding: 6px 9px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--muted);
+  user-select: none;
+}
+
+.quickswitch[open] summary {
+  border-bottom: 1px solid var(--border);
+  color: var(--vscode-foreground);
+}
+
+.quickswitch-body {
+  padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* ----------------------------------------------------------- buttons --- */
+
+button {
+  font-family: inherit;
+  font-size: 11px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  font-weight: 600;
+  padding: 5px 16px;
+}
+
+.primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.secondary {
+  background: var(--vscode-button-secondaryBackground, var(--surface));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  border-color: var(--border);
+}
+
+.secondary:hover {
+  border-color: var(--accent);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.ghost:hover {
+  color: var(--vscode-foreground);
+  border-color: var(--accent);
+}
+
+.icon {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  padding: 2px 5px;
+  font-size: 12px;
+  line-height: 1;
+  flex: none;
+}
+
+.icon:hover {
+  color: var(--vscode-foreground);
+}
+
+.icon.danger:hover {
+  color: var(--bad);
+}
+
+/* ------------------------------------------------------------ footer --- */
+
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  border-top: 1px solid var(--border);
+}
+
+.footer-right {
+  display: flex;
+  gap: 6px;
+}
+
+.footer.dirty .primary::after {
+  content: ' •';
+}
+
+/* ------------------------------------------------------------- empty --- */
+
+.empty {
+  padding: 28px 18px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-title {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.empty-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}

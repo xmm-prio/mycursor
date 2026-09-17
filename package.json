@@ -1,0 +1,48 @@
+{
+  "name": "mycursor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cursor BYOK toolkit: stable multi-layer network interception, native-tool-preserving local agent server, and an idempotent installer.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@11.15.1",
+  "bin": {
+    "mycursor": "./bin/mycursor.mjs"
+  },
+  "files": [
+    "bin",
+    "packages/*/dist",
+    "packages/*/package.json",
+    "packages/extension/media",
+    "packages/extension/resources"
+  ],
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/**\" run build",
+    "typecheck": "tsc -b packages/core packages/protocol packages/interceptor packages/patcher packages/providers packages/server packages/extension packages/cli",
+    "test": "node --test \"test/unit/*.test.mjs\"",
+    "verify:interceptor": "node test/harness/run-interception-matrix.mjs",
+    "verify:sandbox": "node test/sandbox/run-sandbox-install.mjs",
+    "verify:e2e": "node test/e2e/run-end-to-end.mjs",
+    "verify:models": "node test/e2e/run-model-injection.mjs",
+    "verify:agent": "node test/e2e/run-agent-turn.mjs",
+    "verify:knowledge": "node test/e2e/run-knowledge-base.mjs",
+    "verify:websearch": "node test/e2e/run-web-search.mjs",
+    "verify:panel": "node test/e2e/run-panel.mjs",
+    "verify": "pnpm run build && pnpm run test && pnpm run verify:interceptor && pnpm run verify:sandbox && pnpm run verify:e2e && pnpm run verify:models && pnpm run verify:agent && pnpm run verify:knowledge && pnpm run verify:websearch && pnpm run verify:panel",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@mycursor/core": "workspace:*",
+    "@mycursor/interceptor": "workspace:*",
+    "@mycursor/patcher": "workspace:*",
+    "@mycursor/protocol": "workspace:*",
+    "@mycursor/providers": "workspace:*",
+    "@mycursor/server": "workspace:*",
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}
