@@ -44,6 +44,8 @@ export interface UplinkResolverDeps {
 export class UplinkResolver {
   private cache: CacheEntry = { target: null, checkedAt: 0 };
   private inFlight: Promise<UplinkTarget | null> | null = null;
+  /** When a wait last ran its full budget without finding a server. */
+  private exhaustedAt = 0;
 
   constructor(private readonly deps: UplinkResolverDeps) {}
 
@@ -64,6 +66,7 @@ export class UplinkResolver {
   /** Invalidates the cache, e.g. after a configuration change. */
   invalidate(): void {
     this.cache = { target: null, checkedAt: 0 };
+    this.exhaustedAt = 0;
   }
 
   /**
@@ -88,19 +91,39 @@ export class UplinkResolver {
   /**
    * Waits up to `budgetMs` for a healthy server, retrying at the configured
    * interval. Resolves to `null` when the budget runs out.
+   *
+   * The wait exists for one situation: a server that is starting. It must not
+   * be paid by every request when there is no server at all — that turns a
+   * server which failed to start into an IDE where each call stalls for the
+   * full budget before falling back, which is indistinguishable from a hang.
+   * So once a wait has run its course, later requests pass straight through
+   * until the probe TTL lapses and it is worth looking again.
    */
   async waitForTarget(budgetMs: number): Promise<UplinkTarget | null> {
     const cached = this.cached();
     if (cached) return cached;
 
     const config = this.deps.readConfig();
+    const ttlMs = config.uplink.probeTtlSeconds * 1_000;
+    if (this.exhaustedAt !== 0 && Date.now() - this.exhaustedAt < ttlMs) return null;
+
     const deadline = Date.now() + Math.max(0, budgetMs);
     const delay = config.interception.readiness.retryDelayMs;
 
     for (;;) {
       const target = await this.refresh();
-      if (target) return target;
-      if (Date.now() + delay > deadline) return null;
+      if (target) {
+        this.exhaustedAt = 0;
+        return target;
+      }
+      if (Date.now() + delay > deadline) {
+        this.exhaustedAt = Date.now();
+        this.deps.onDiagnostic('no BYOK server appeared; passing through until the probe TTL lapses', {
+          waitedMs: budgetMs,
+          ttlSeconds: config.uplink.probeTtlSeconds,
+        });
+        return null;
+      }
       await sleep(delay);
     }
   }

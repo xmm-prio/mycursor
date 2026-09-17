@@ -7,7 +7,10 @@
  * whether Cursor's integrity metadata matches its files.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 import { loadConfigFrom, resolveConfigPaths, type MyCursorConfig } from '@mycursor/core/config';
 import { RequestRouter } from '@mycursor/core/routing';
@@ -63,6 +66,51 @@ async function probeServer(config: MyCursorConfig): Promise<ServerProbe> {
     };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/**
+ * Reports the installed panel extension and whether its launcher can run.
+ *
+ * Added because its absence hid a real failure: the extension was installed
+ * and looked healthy, but the launcher it spawns could not be loaded by Node
+ * at all. Nothing said so — the server simply never appeared.
+ */
+function reportPanelExtension(): void {
+  heading('panel extension');
+
+  const root = join(homedir(), '.cursor', 'extensions');
+  let installed: string[] = [];
+  try {
+    installed = readdirSync(root).filter((name) => name.startsWith('mycursor.'));
+  } catch {
+    info(`no extensions directory at ${root}`);
+    return;
+  }
+
+  if (installed.length === 0) {
+    warn('the panel extension is not installed — run "mycursor extension"');
+    return;
+  }
+
+  for (const name of installed) {
+    const launcher = join(root, name, 'dist', 'server', 'launch.cjs');
+    if (!existsSync(launcher)) {
+      warn(`${name} — server launcher missing; reinstall with "mycursor extension"`);
+      detail(launcher);
+      continue;
+    }
+
+    // Loading it is the check that matters. A module-format mismatch or a
+    // missing dependency only shows up when Node actually reads the file, and
+    // presents to the user as a server that never starts.
+    const probe = spawnSync(process.execPath, ['--check', launcher], { encoding: 'utf-8' });
+    if (probe.status === 0) ok(`${name} — launcher loads`);
+    else {
+      warn(`${name} — the server launcher cannot be loaded by Node`);
+      detail((probe.stderr || '').split('\n').find((line) => /error/i.test(line))?.trim() ?? '');
+      detail('reinstall with "mycursor extension", then restart Cursor');
+    }
   }
 }
 
@@ -227,6 +275,8 @@ export async function status(deep: boolean): Promise<number> {
       ['rest paths', router.restPaths().join(', ') || '(none)'],
     ]);
     for (const warning of warnings) warn(warning);
+
+    reportPanelExtension();
 
     heading('install manifest');
     const manifest = readManifest(paths.root);
