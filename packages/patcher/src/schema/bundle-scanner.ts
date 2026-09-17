@@ -37,6 +37,18 @@ const MAX_SPAN = 256 * 1024;
 /** Guards against a mis-anchored region parsing into an unbounded tree. */
 const MAX_DEPTH = 32;
 
+/**
+ * Longest quoted literal the reader will build.
+ *
+ * Type names and field names are tens of characters; the generated tables
+ * hold nothing remotely this long. Anything larger means the anchor was not
+ * a string literal at all.
+ */
+const MAX_STRING = 64 * 1024;
+
+/** Longest identifier the reader will read backwards for. */
+const MAX_IDENT = 512;
+
 export class LiteralParseError extends Error {
   constructor(message: string, readonly index: number) {
     super(`${message} at offset ${index}`);
@@ -128,11 +140,22 @@ export function skipStringLiteral(text: string, start: number): number {
   return i;
 }
 
+/**
+ * Reads a quoted literal, bounded by {@link MAX_STRING}.
+ *
+ * The bound is the point. A quote inside a regular expression or template —
+ * which minified code is full of — looks like the start of a literal, and
+ * the matching quote may be megabytes away or absent entirely. Building that
+ * span one character at a time, at every anchor the scanner tries, is enough
+ * on its own to exhaust the heap.
+ */
 export function readStringLiteral(text: string, start: number): { value: string; end: number } {
   const quote = text[start];
+  const stop = Math.min(text.length, start + MAX_STRING);
   let value = '';
   let i = start + 1;
-  while (i < text.length) {
+
+  while (i < stop) {
     const ch = text[i]!;
     if (ch === '\\') {
       value += text[i + 1] ?? '';
@@ -143,13 +166,38 @@ export function readStringLiteral(text: string, start: number): { value: string;
     value += ch;
     i += 1;
   }
-  return { value, end: i };
+
+  throw new LiteralParseError('string literal never closed', start);
 }
 
-/** Reads the identifier ending immediately before `endExclusive`. */
+/**
+ * Reads a quoted literal, or returns null when it is not one.
+ *
+ * For callers probing whether an offset is an anchor rather than parsing a
+ * literal they already trust: a rejection there is an ordinary outcome, not
+ * an error to unwind.
+ */
+export function tryReadStringLiteral(
+  text: string,
+  start: number,
+): { value: string; end: number } | null {
+  try {
+    return readStringLiteral(text, start);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads the identifier ending immediately before `endExclusive`.
+ *
+ * Bounded so a long run of identifier characters — a base64 blob in the
+ * bundle, say — cannot be copied out as if it were a variable name.
+ */
 export function readIdentifierBackwards(text: string, endExclusive: number): string {
+  const stop = Math.max(0, endExclusive - MAX_IDENT);
   let i = endExclusive - 1;
-  while (i >= 0 && IDENT.test(text[i]!)) i -= 1;
+  while (i >= stop && IDENT.test(text[i]!)) i -= 1;
   return text.slice(i + 1, endExclusive);
 }
 

@@ -48,8 +48,8 @@ import {
   parseArray,
   parseObject,
   readIdentifierBackwards,
-  readStringLiteral,
   referencedIdentifier,
+  tryReadStringLiteral,
   skipWhitespace,
   type LiteralValue,
 } from './bundle-scanner.js';
@@ -270,7 +270,9 @@ function scanBundle(source: string): BundleScan {
       cursor = skipWhitespace(source, cursor + 1);
       if (source[cursor] !== '"' && source[cursor] !== "'") continue;
 
-      const { value: typeName, end } = readStringLiteral(source, cursor);
+      const read = tryReadStringLiteral(source, cursor);
+      if (!read) continue;
+      const { value: typeName, end } = read;
       if (!TYPE_NAME.test(typeName)) continue;
       sites += 1;
 
@@ -363,7 +365,9 @@ function scanClassMessages(
 
     let cursor = skipWhitespace(source, index + CLASS_TYPE_NAME_MARKER.length);
     if (source[cursor] !== '"' && source[cursor] !== "'") continue;
-    const { value: typeName, end } = readStringLiteral(source, cursor);
+    const read = tryReadStringLiteral(source, cursor);
+    if (!read) continue;
+    const { value: typeName, end } = read;
     if (!TYPE_NAME.test(typeName)) continue;
 
     const variable = readIdentifierBackwards(source, index);
@@ -434,7 +438,9 @@ function scanServices(source: string): RawService[] {
 
     let cursor = skipWhitespace(source, index + SERVICE_MARKER.length);
     if (source[cursor] !== '"' && source[cursor] !== "'") continue;
-    const { value: typeName, end } = readStringLiteral(source, cursor);
+    const read = tryReadStringLiteral(source, cursor);
+    if (!read) continue;
+    const { value: typeName, end } = read;
     if (!TYPE_NAME.test(typeName)) continue;
 
     cursor = skipWhitespace(source, end);

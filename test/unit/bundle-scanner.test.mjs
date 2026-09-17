@@ -24,6 +24,7 @@ import {
   readIdentifierBackwards,
   readStringLiteral,
   referencedIdentifier,
+  tryReadStringLiteral,
 } from '@mycursor/patcher';
 
 test('matchBracket spans nested brackets and ignores brackets inside strings', () => {
@@ -180,6 +181,24 @@ test('matchBracket gives up rather than scanning megabytes for a missing close',
   assert.equal(matchBracket(runaway, 0), -1);
   // A real field table is orders of magnitude smaller and still matches.
   assert.ok(matchBracket(`[${'{no:1},'.repeat(800)}]`, 0) > 0);
+});
+
+test('an unterminated string is rejected, not read to the end of the bundle', () => {
+  // A quote inside a regular expression or template looks like the start of
+  // a literal. Reading to the matching quote — or to the end of a 46 MB
+  // bundle when there is none — built that whole span one character at a
+  // time, at every anchor the scanner tried.
+  const runaway = `"${'x'.repeat(200_000)}`;
+  assert.throws(() => readStringLiteral(runaway, 0), /never closed/);
+  assert.equal(tryReadStringLiteral(runaway, 0), null);
+  // A real type name is unaffected.
+  assert.equal(tryReadStringLiteral('"aiserver.v1.Foo"', 0).value, 'aiserver.v1.Foo');
+});
+
+test('readIdentifierBackwards does not copy out an arbitrarily long run', () => {
+  const blob = `${'A'.repeat(100_000)}=`;
+  assert.ok(readIdentifierBackwards(blob, blob.length - 1).length <= 512);
+  assert.equal(readIdentifierBackwards('var loe=x', 7), 'loe');
 });
 
 test('rejection is confined to the offending literal', () => {

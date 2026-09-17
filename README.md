@@ -39,7 +39,9 @@ npx . install
 
 > **不要执行 `npx mycursor`。** 本项目尚未发布到 npm，而 npm 上的 `mycursor` 是**另一个毫不相干的包**（"Perfect for using custom cursors"）——那条命令会下载并运行别人的代码。发布时也需要换一个作用域名字。
 
-`npx .` 会自己补齐依赖和构建产物：检测到 `packages/cli/dist` 不存在时先 `pnpm install` 再 `pnpm build`，然后才执行命令，所以全新克隆也是一条命令。已经构建过则直接跳过。
+`npx .` 会自己补齐依赖和构建产物：缺产物时先 `pnpm install` 再 `pnpm build`，然后才执行命令，所以全新克隆也是一条命令。
+
+`git pull` 之后**不需要手动构建**——启动器会比较 `packages/*/src` 与产物的修改时间，源码更新就自动重建。（早期版本只检查产物是否存在，导致拉取新代码后仍在跑旧的编译结果。）
 
 install 依次完成：给本机所有 Cursor 安装打补丁（含 `~/.cursor-server` 远端）→ 从你自己的 Cursor 提取 protobuf schema → 把配置面板打包成 VSIX 并用 Cursor 官方 CLI 装上 → 写好默认配置。
 
@@ -113,7 +115,7 @@ pnpm verify:agent        # 62 项：原生 agent 回话，47 工具目录 + MCP 
 pnpm verify:knowledge    # 23 项："remember this" 的本地增删改查与跨重启持久化
 pnpm verify:websearch    # 38 项：六个搜索后端的真实请求、回合内执行、不遮挡原生工具
 pnpm verify:panel        # 42 项：桩化 vscode 激活真实扩展包，面板表单与存盘往返
-pnpm verify              # 以上全部（375 项）
+pnpm verify              # 以上全部（377 项）
 pnpm clean               # 清掉构建产物与验证残留（沙箱影子约 100 MiB）
 ```
 
