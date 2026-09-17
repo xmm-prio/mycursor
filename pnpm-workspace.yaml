@@ -1,4 +1,8 @@
 packages:
   - 'packages/*'
+
+# esbuild fetches its platform binary in a postinstall script. pnpm blocks
+# those by default, and without an answer here `pnpm install` exits non-zero
+# on a fresh clone — which stops `npx mycursor` before it ever builds.
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true

@@ -8,9 +8,6 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "mycursor-serve": "./dist/launch.js"
-  },
   "scripts": {
     "build": "tsc -b"
   },
