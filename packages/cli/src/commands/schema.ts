@@ -22,6 +22,7 @@ import { dirname, join } from 'node:path';
 import { resolveConfigPaths } from '@mycursor/core/config';
 import { extractDescriptors, formatLocateResult, locateInstalls } from '@mycursor/patcher';
 import { DescriptorRegistry, type DescriptorDocument } from '@mycursor/protocol/schema';
+import { describeSchemaSupport } from '@mycursor/server';
 
 import { detail, fail, heading, info, ok, rows, warn } from '../ui.js';
 
@@ -50,7 +51,7 @@ export async function schema(flags: SchemaFlags): Promise<number> {
   const existing = readExisting(paths.descriptors);
   if (existing && existing.cursorVersion === install.version && !flags.force) {
     ok(`descriptors already match Cursor ${install.version}`);
-    describe(existing);
+    reportSupport(describe(existing));
     detail('use --force to re-extract');
     return 0;
   }
@@ -71,7 +72,7 @@ export async function schema(flags: SchemaFlags): Promise<number> {
 
   ok(`extracted in ${elapsed} ms from ${report.sources.length} bundle(s)`);
   for (const source of report.sources) detail(source);
-  describe(report.document);
+  const registry = describe(report.document);
 
   rows([
     ['message sites', String(report.messageSites)],
@@ -88,6 +89,8 @@ export async function schema(flags: SchemaFlags): Promise<number> {
     detail('unresolved references are carried as opaque bytes and round trip unchanged');
   }
 
+  reportSupport(registry);
+
   if (flags.dryRun) {
     info('dry run: nothing was written');
     return 0;
@@ -99,8 +102,31 @@ export async function schema(flags: SchemaFlags): Promise<number> {
   return 0;
 }
 
-function describe(document: DescriptorDocument): void {
-  const stats = DescriptorRegistry.fromDocument(document).stats();
+/**
+ * Reports which server features this schema can actually back.
+ *
+ * A partial extraction is the outcome worth being loud about: it writes a
+ * file and reports success, then leaves the affected features quietly
+ * forwarding to the official API, which presents as "BYOK does not work"
+ * with nothing pointing at the cause.
+ */
+function reportSupport(registry: DescriptorRegistry): void {
+  const support = describeSchemaSupport(registry);
+  console.log();
+  for (const feature of support) {
+    if (feature.supported) ok(feature.label);
+    else warn(`${feature.label} — unavailable, ${feature.missing.length} type(s) missing`);
+    for (const type of feature.missing.slice(0, 4)) detail(type);
+  }
+  if (support.some((feature) => !feature.supported)) {
+    detail('these fall back to the official API; the rest still work');
+    detail('please report the Cursor version so extraction can be taught this build');
+  }
+}
+
+function describe(document: DescriptorDocument): DescriptorRegistry {
+  const registry = DescriptorRegistry.fromDocument(document);
+  const stats = registry.stats();
   rows([
     ['messages', String(stats.messages)],
     ['enums', String(stats.enums)],
@@ -108,6 +134,7 @@ function describe(document: DescriptorDocument): void {
     ['methods', String(stats.methods)],
     ['dangling type refs', String(stats.danglingReferences)],
   ]);
+  return registry;
 }
 
 function readExisting(path: string): DescriptorDocument | null {

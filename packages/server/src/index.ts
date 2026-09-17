@@ -52,6 +52,11 @@ export { restStubPaths } from './rpc/rest-stubs.js';
 export { DEFAULT_UPSTREAM_HOST, type UpstreamResult } from './upstream/proxy.js';
 export { DescriptorStore } from './schema/descriptor-store.js';
 export {
+  describeSchemaSupport,
+  SCHEMA_FEATURES,
+  type FeatureSupport,
+} from './schema/support.js';
+export {
   buildAvailableModelsResponse,
   AVAILABLE_MODELS_RESPONSE_TYPE,
   AVAILABLE_MODEL_TYPE,

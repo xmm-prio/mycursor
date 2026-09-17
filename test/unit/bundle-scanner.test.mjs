@@ -138,3 +138,55 @@ test('referencedIdentifier returns null for a non-reference', () => {
   assert.equal(referencedIdentifier('text'), null);
   assert.equal(referencedIdentifier(undefined), null);
 });
+
+/*
+ * Rejecting what it cannot read.
+ *
+ * The reader is anchored by textual heuristics, so a codegen change in a new
+ * Cursor release will point it at something that is not a field table. It
+ * must fail on that input rather than spin: this exact case took a reported
+ * `mycursor schema` on Cursor 3.19.19 to a 4 GB heap death after 33 seconds,
+ * because `parseValue` returned without consuming and the array loop had no
+ * progress check. Each of these would pass trivially if the guard were
+ * removed and the loop merely got slower, so they assert termination.
+ */
+
+test('a value the reader has no rule for is rejected, not looped over', () => {
+  // `)` reaches no branch in parseValue, which used to return end === index.
+  assert.throws(() => parseArray('[{no:1,name:"a"},)]', 0), /unexpected "\)"/);
+});
+
+test('a key position that is neither a string nor an identifier is rejected', () => {
+  assert.throws(() => parseObject('{no:1,)}', 0), /unexpected/);
+});
+
+test('a key with no value is rejected', () => {
+  assert.throws(() => parseObject('{no:1,name}', 0), /expected ":"/);
+});
+
+test('an unclosed literal is rejected rather than scanned to the end', () => {
+  assert.throws(() => parseArray(`[${'{no:1},'.repeat(100)}`, 0), /never closed/);
+  assert.throws(() => parseObject(`{a:1,${'b:2,'.repeat(100)}`, 0), /never closed/);
+});
+
+test('pathological nesting is rejected before it builds a tree', () => {
+  assert.throws(() => parseArray(`${'['.repeat(200)}1${']'.repeat(200)}`, 0), /nested too deeply/);
+});
+
+test('matchBracket gives up rather than scanning megabytes for a missing close', () => {
+  // A mis-anchored bracket used to be matched against one far away, making
+  // every bad site cost a scan of the whole bundle.
+  const runaway = `[${'x'.repeat(400_000)}]`;
+  assert.equal(matchBracket(runaway, 0), -1);
+  // A real field table is orders of magnitude smaller and still matches.
+  assert.ok(matchBracket(`[${'{no:1},'.repeat(800)}]`, 0) > 0);
+});
+
+test('rejection is confined to the offending literal', () => {
+  // The extractor catches these per site, so a bundle with one unreadable
+  // table still yields every other table.
+  const good = parseArray('[{no:1,name:"a"}]', 0).value;
+  assert.equal(good.length, 1);
+  assert.throws(() => parseArray('[@]', 0));
+  assert.equal(parseArray('[{no:2,name:"b"}]', 0).value[0].name, 'b');
+});
